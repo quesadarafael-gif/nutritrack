@@ -1,186 +1,26 @@
 import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+// ─── Supabase config ─────────────────────────────────────────────────────────
+const supabase = createClient(
+  "https://mgqfcguawioyjhyjswqw.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ncWZjZ3Vhd2lveWpoeWpzd3F3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjIxMTIsImV4cCI6MjA5MTk5ODExMn0.A_0u3LAcW8oTt7sYmXEOHB6WOedUpZWn64ZixMZUXVY"
+);
+
+// ─── Estilos base (no cambian) ───────────────────────────────────────────────
 const G = {50:"#f0fdf4",100:"#dcfce7",200:"#bbf7d0",400:"#4ade80",500:"#22c55e",600:"#16a34a",700:"#15803d"};
 const card = {background:"#fff",border:"1px solid #e5e7eb",borderRadius:16,overflow:"hidden"};
 const pill = (bg,fg) => ({background:bg,color:fg,fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:20,display:"inline-block"});
 const SHORTS = ["LUN","MAR","MIÉ","JUE","VIE","SÁB","DOM"];
-const TIPOS  = ["train","rest","train","padel","rest","rest","prep"];
 const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-const WEEKS_META = [
-  {label:"Sem 16", range:"13 – 19 abr",      start:new Date("2026-04-13")},
-  {label:"Sem 17", range:"20 – 26 abr",      start:new Date("2026-04-20")},
-  {label:"Sem 18", range:"27 abr – 3 may",   start:new Date("2026-04-27")},
-  {label:"Sem 19", range:"4 – 10 may",       start:new Date("2026-05-04")},
-  {label:"Sem 20", range:"11 – 17 may",      start:new Date("2026-05-11")},
-];
-const MEAL_TPLS = [
-  [{time:"07:00",name:"Avena con leche y huevos",qty:"80g avena · 250ml leche · 2 huevos revueltos · 1 plátano"},
-   {time:"10:30",name:"Yogur griego + nueces + miel",qty:"200g yogur · 20g nueces · 10g miel"},
-   {time:"14:00",name:"Pollo air fryer + arroz + brócoli",qty:"200g pechuga 185°C · 100g arroz crudo · 150g brócoli"},
-   {time:"18:00",name:"Pan integral con atún y tomate",qty:"2 rebanadas · 1 lata atún 80g · tomate"},
-   {time:"22:00",name:"Tortilla 4 huevos + patatas + ensalada",qty:"4 huevos · 200g patata cocida · ensalada verde"}],
-  [{time:"07:00",name:"Huevos estrellados + tostadas + zumo",qty:"2 huevos · 2 rebanadas pan · 1 naranja exprimida"},
-   {time:"10:30",name:"Requesón con manzana",qty:"200g requesón · 1 manzana"},
-   {time:"14:00",name:"Lentejas con arroz",qty:"1 bote lentejas (400g) · 80g arroz crudo · ajo y pimentón"},
-   {time:"18:00",name:"Batido casero",qty:"300ml leche · 1 plátano · 15g cacao puro"},
-   {time:"21:30",name:"Merluza air fryer + patatas + ensalada",qty:"200g merluza 190°C 11min · 200g patatas dados"}],
-  [{time:"07:00",name:"Avena con leche y huevos",qty:"80g avena · 250ml leche · 2 huevos revueltos · 1 plátano"},
-   {time:"10:30",name:"Yogur griego + naranja + miel",qty:"200g yogur · 1 naranja · 10g miel"},
-   {time:"14:00",name:"Pasta con atún y tomate",qty:"100g pasta cruda · 2 latas atún · 50g tomate frito · 20g queso"},
-   {time:"18:00",name:"Pan con pechuga de pavo",qty:"2 rebanadas · 80g pavo fiambre · tomate"},
-   {time:"22:00",name:"Muslos pollo air fryer + arroz + pimiento",qty:"250g muslos 180°C 22min · 80g arroz · pimiento asado"}],
-  [{time:"07:00",name:"Avena reforzada + huevos + plátano",qty:"100g avena · 300ml leche · 2 huevos · 1 plátano grande"},
-   {time:"10:30",name:"Yogur griego + nueces",qty:"200g yogur · 25g nueces"},
-   {time:"14:00",name:"Pollo + arroz + judías verdes",qty:"200g pechuga air fryer · 120g arroz crudo · 150g judías"},
-   {time:"17:00",name:"Pre-pádel ⚡ tostadas + mermelada + plátano",qty:"2 tostadas · 20g mermelada · 1 plátano (60 min antes)"},
-   {time:"22:00",name:"Post-pádel: tortilla + atún + pan",qty:"4 huevos · 2 latas atún · 2 rebanadas pan integral"}],
-  [{time:"07:00",name:"Tortitas de avena",qty:"80g avena + 2 huevos + 100ml leche en sartén · miel"},
-   {time:"10:30",name:"Requesón con pera",qty:"200g requesón · 1 pera"},
-   {time:"14:00",name:"Alubias con salchichas de pollo",qty:"1 bote alubias (400g) · 2 salchichas pollo · 60g arroz crudo"},
-   {time:"18:00",name:"Leche con cacao + tostada con mantequilla",qty:"300ml leche · 15g cacao · 2 rebanadas · 10g mantequilla"},
-   {time:"21:30",name:"Sardinas + pasta al tomate",qty:"80g pasta · 2 latas sardinas · tomate rallado · aceite"}],
-  [{time:"07:00",name:"3 huevos revueltos + tostadas + zumo",qty:"3 huevos · 2 rebanadas pan · zumo de 2 naranjas"},
-   {time:"11:00",name:"Yogur con avena cruda y plátano",qty:"200g yogur · 40g avena · 1 plátano"},
-   {time:"14:00",name:"Contramuslos air fryer + patatas asadas",qty:"300g contramuslos 185°C 22min · 200g patatas · ensalada"},
-   {time:"18:00",name:"Batido leche + plátano + cacao",qty:"300ml leche · 1 plátano · 15g cacao"},
-   {time:"21:30",name:"Macarrones con carne picada",qty:"100g pasta · 150g carne picada · 80g tomate frito · orégano"}],
-  [{time:"07:00",name:"Avena con leche + 2 huevos + miel",qty:"80g avena · 250ml leche · 2 huevos revueltos · 10g miel"},
-   {time:"11:00",name:"Fruta variada + nueces",qty:"2 piezas fruta de temporada · 30g nueces"},
-   {time:"14:00",name:"Arroz con pollo guisado 🍳",qty:"200g pollo · 100g arroz crudo · ½ pimiento · tomate · caldo"},
-   {time:"18:00",name:"Yogur griego + plátano + miel",qty:"200g yogur · 1 plátano · 10g miel"},
-   {time:"21:30",name:"Pizza casera exprés (air fryer)",qty:"2 tortillas trigo · 60g tomate frito · 80g mozzarella · 1 lata atún · 8min 180°C"}],
-];
-// Elaboración + alternativas para cada comida (7 días × 5 comidas)
-const MEAL_INFO = [
-  // LUN
-  [{steps:["Calienta la leche 2 min en microondas","Añade la avena, remueve y deja reposar 2 min","Haz los huevos revueltos en sartén con spray a fuego medio","Sirve el plátano entero al lado"],alts:["🥞 Tortitas de avena: 80g avena + 2 huevos + 100ml leche, cuaja en sartén 2 min por lado","🍞 Tostadas con huevo frito y queso fresco: 2 rebanadas pan + 2 huevos + 60g queso fresco"]},
-   {steps:["Vierte el yogur en un bol","Trocea las nueces con los dedos encima","Añade la miel en hilo fino","Listo en 1 minuto"],alts:["🧀 Requesón 200g con 80g frutas del bosque congeladas (descongelar la noche anterior)","🥛 200ml kéfir con 30g granola y 10g miel"]},
-   {steps:["Sazona la pechuga con sal, ajo en polvo y orégano","Air fryer 185°C · 16-18 min · gira a mitad","Pon a cocer el arroz 18 min con una pizca de sal","Cuece el brócoli al vapor en microondas 5 min con film"],alts:["🍗 200g muslos de pollo misma receta (+2 min) + 100g arroz + 150g brócoli","🐟 200g merluza air fryer 190°C 11 min + 100g arroz + 150g judías verdes"]},
-   {steps:["Tuesta el pan 2 min en tostadora","Escurre bien el atún de la lata","Coloca rodajas de tomate y encima el atún","Opcional: unas gotas de aceite de oliva"],alts:["🐟 2 rebanadas pan integral + 1 lata sardinas 85g + 50g pimiento asado de bote","🥑 6 crackers integrales + 100g requesón + 1 lata atún 80g"]},
-   {steps:["Cuece las patatas en dados 10 min en agua con sal","Bate 4 huevos con sal y pimienta","Mezcla patatas escurridas con el huevo batido","Cuaja en sartén antiadherente a fuego medio-bajo, tapa 5 min"],alts:["🍳 4 huevos revueltos + 150g champiñones salteados con ajo y AOVE","🧀 4 huevos (2×tortilla francesa) + 80g jamón york + 20g queso"]}],
-  // MAR
-  [{steps:["Calienta la sartén con spray de aceite","Fríe los huevos a fuego medio-alto 2-3 min","Tuesta el pan mientras tanto","Exprime la naranja directamente en vaso"],alts:["🥚 3 huevos revueltos con 30g queso rallado al microondas 2 min + 2 tostadas pan","🫐 200g yogur griego + 100g frutas del bosque + 2 huevos duros (cocer aparte 12 min)"]},
-   {steps:["Parte la manzana en dados o láminas","Pon el requesón en bol y coloca la fruta encima","Opcional: toque de canela o miel"],alts:["🍐 200g requesón + 1 pera + 20g nueces troceadas","🍌 200g yogur griego + 1 plátano en rodajas + 10g cacao puro"]},
-   {steps:["Abre y escurre el bote de lentejas","Sofríe ajo laminado en AOVE 1 min","Añade lentejas + pimentón ahumado, rehoga 3 min","Sirve sobre el arroz cocido previamente"],alts:["🫘 400g garbanzos cocidos salteados con 100g espinacas + 1 huevo duro + 80g arroz","🍲 400g alubias blancas de bote con 50g tomate frito + 80g arroz cocido"]},
-   {steps:["Pon leche fría en vaso alto","Añade el plátano en trozos y el cacao","Bate con batidora de mano 30 segundos","Tomar frío o a temperatura ambiente"],alts:["🍫 150g yogur griego + 1 plátano + 15g cacao + 100ml leche, batido","☕ 300ml leche caliente con 15g cacao + 2 tortitas de arroz (35g)"]},
-   {steps:["Sazona la merluza con sal, limón y ajo en polvo","Air fryer 190°C · 10-12 min · sin voltear","Corta patatas en dados 2cm, spray aceite, 200°C 18 min (pon antes)","Sirve con unas hojas de lechuga y tomate"],alts:["🐟 200g salmón air fryer 190°C 10 min + 200g patatas dados + ensalada verde","🍤 200g gambas peladas al ajillo (sartén 3 min) + 200g patatas + lechuga"]}],
-  // MIÉ
-  [{steps:["Igual que el lunes: leche caliente + avena 2 min","Huevos revueltos en sartén con spray","Plátano al lado"],alts:["🥣 Overnight oats: 80g avena + 200ml leche + 100g yogur, reposar en nevera desde noche anterior + 1 plátano","🍳 2 huevos al plato en microondas 2 min + 2 tostadas pan integral + 250ml leche"]},
-   {steps:["Pela la naranja y separa los gajos","Vierte el yogur en bol","Coloca los gajos encima y añade la miel"],alts:["🍓 200g yogur griego + 100g fresas + 10g miel","🥭 200g yogur griego + 100g mango congelado (descongelar) + 10g miel"]},
-   {steps:["Cuece la pasta al dente según paquete (9-11 min)","Escurre, reserva. Mezcla en caliente con tomate frito","Añade el atún escurrido y el queso rallado","Remueve bien hasta que el queso se funda"],alts:["🍝 100g pasta + 2 huevos fritos + 30g queso parmesano (carbonara express)","🫙 100g pasta + 40g pesto de bote + 1 lata atún 80g + 80g tomates cherry"]},
-   {steps:["Tuesta el pan","Coloca las lonchas de pavo fiambre","Añade rodajas de tomate fresco","Opcional: mostaza o un chorrito de AOVE"],alts:["🧀 2 rebanadas pan integral + 60g queso fresco + 60g jamón york + tomate","🥫 2 rebanadas pan integral + 40g hummus + 80g pechuga pavo fiambre"]},
-   {steps:["Sazona los muslos con sal, ajo, pimentón y AOVE","Air fryer 180°C · 20-22 min · da la vuelta a mitad","Asa el pimiento en el mismo air fryer 10 min antes","Cuece el arroz en paralelo"],alts:["🍗 250g contramuslos rellenos de 30g queso + 50g espinacas, palillo para cerrar, air fryer 185°C 22 min + 80g arroz","🌮 250g muslos desmigados del meal prep sobre 80g arroz con 100g yogur natural + ajo + limón"]}],
-  // JUE
-  [{steps:["Leche caliente + 100g avena, reposar 3 min","Huevos revueltos en sartén (aquí 2 huevos)","Plátano grande al lado: clave para energía pre-día de pádel"],alts:["🥞 Tortitas: 100g avena + 2 huevos + 120ml leche + 1 plátano chafado en la masa, cuaja en sartén","🍌 100g avena fría overnight (leche 300ml) + 2 huevos duros aparte + 1 plátano"]},
-   {steps:["Yogur en bol","Trocea las nueces por encima","Sin miel hoy: las nueces ya aportan grasas buenas"],alts:["🫐 200g yogur griego + 80g arándanos frescos o congelados + 10g semillas de chía","🧀 200g requesón + 1 manzana en dados + 15g nueces troceadas"]},
-   {steps:["Pechuga sazonada, air fryer 185°C 16-18 min","Cuece 120g arroz (más cantidad que otros días por el pádel)","Judías verdes: microondas 5 min con film o hervidas 8 min","Aliña con AOVE y sal"],alts:["🐟 200g merluza air fryer 190°C 11 min + 120g arroz crudo cocido + 150g judías verdes","🍗 200g pechuga sartén con 20ml salsa de soja + 120g arroz + 100g brócoli vapor"]},
-   {steps:["Tuesta las rebanadas de pan","Unta la mermelada bien repartida","Añade el plátano en rodajas encima o al lado","⏱️ Come esto 60 min antes del partido"],alts:["⚡ 1 plátano grande + 2 dátiles Medjool + vaso de agua con pizca de sal (más simple y rápido)","🍌 2 rebanadas pan integral + 20g miel + 1 plátano + 200ml zumo de naranja natural"]},
-   {steps:["Post-partido: haz esto en menos de 30 min","Bate 4 huevos con sal, cuaja en sartén antiadherente","Calienta el pan (tostadora 2 min)","Abre y escurre las 2 latas de atún","Monta el plato: tortilla + atún encima + pan al lado"],alts:["🥩 4 huevos revueltos + 200g requesón + 2 rebanadas pan integral (muy rápido)","🍗 200g pechuga del meal prep (microondas 2 min) + 100g arroz + 1 huevo duro"]}],
-  // VIE
-  [{steps:["Tritura en bol: 80g avena + 2 huevos + 100ml leche","Calienta sartén antiadherente con spray","Vierte cucharadas grandes y cuaja 2 min por lado","Sirve con miel por encima"],alts:["🍌 Misma receta + 1 plátano chafado en la masa (añade carbos y sabor natural)","🥣 80g avena cocida con 250ml leche + 2 huevos revueltos aparte (si no tienes tiempo de tortitas)"]},
-   {steps:["Parte la pera en dados","Pon el requesón en bol","Coloca la fruta encima, opcional toque de canela"],alts:["🍎 200g requesón + 1 manzana en dados + 10g miel","🫐 200g requesón + 80g arándanos frescos + 15g nueces troceadas"]},
-   {steps:["Calienta las alubias del bote en sartén con ajo y AOVE 3 min","Añade las salchichas cortadas en rodajas, saltea 5 min","Incorpora el arroz cocido y mezcla bien","Salpimenta al gusto"],alts:["🫘 400g alubias + 2 salchichas de pavo (menos grasa que pollo) + 60g arroz cocido","🍲 400g alubias + 80g tomate frito + 1 huevo escalfado encima (sin arroz, más ligero)"]},
-   {steps:["Calienta la leche y disuelve el cacao removiendo bien","Tuesta el pan y unta la mantequilla","Acompañar juntos"],alts:["☕ 250ml café con leche + 2 tostadas con 10ml AOVE y tomate rallado (más salado)","🍫 300ml leche fría + 15g cacao + 2 onzas 70% chocolate negro (20g) sin tostar"]},
-   {steps:["Cuece la pasta al dente","Escurre y añade las sardinas desmigadas con su aceite","Ralla tomate fresco encima o usa tomate de bote","Remueve y sirve"],alts:["🐟 80g pasta + 1 lata caballa en aceite 115g + 40g pesto de bote","🍝 80g pasta + 1 lata atún 80g + 40g aceitunas negras + 80g tomates cherry + AOVE"]}],
-  // SÁB
-  [{steps:["Calienta sartén con spray a fuego vivo","Fríe los 3 huevos (o revuélvelos si prefieres)","Tuesta el pan mientras tanto","Exprime las 2 naranjas en vaso"],alts:["🧆 3 huevos revueltos + 150g champiñones laminados salteados con ajo + 2 tostadas pan","🥚 3 huevos revueltos + 30g queso rallado + 60g jamón york + 2 tostadas + zumo 1 naranja"]},
-   {steps:["Vierte el yogur en bol","Añade la avena cruda directamente (sin cocer)","Coloca el plátano en rodajas encima"],alts:["🥣 200g yogur griego + 40g avena cocida con 150ml leche + 1 plátano encima","🍌 200g yogur griego + 30g granola tostada + 10g miel (sustituye la avena cruda por granola)"]},
-   {steps:["Sazona contramuslos con sal, ajo y pimentón","Air fryer 185°C · 22 min · da vuelta a mitad","Patatas en dados con spray y sal, 200°C 18 min (pon 4 min antes que el pollo)","Ensalada verde de guarnición"],alts:["🍗 300g muslos (misma receta exacta) + 200g patatas dados + ensalada","🥩 250g secreto ibérico air fryer 200°C 10 min + 200g patatas dados + lechuga tomate"]},
-   {steps:["Calienta la leche y disuelve el cacao","Añade el plátano en rodajas o bátelo todo junto","Servir frío o caliente"],alts:["🍌 150g yogur griego + 1 plátano + 15g cacao + 100ml leche, batido con batidora","☕ 250ml café con leche + 1 plátano entero + 20g nueces (snack sólido)"]},
-   {steps:["Sofríe la carne picada con ajo en sartén 8 min","Añade el tomate frito y el orégano, cuece 5 min","Cuece los macarrones al dente según paquete","Mezcla pasta con la salsa y sirve"],alts:["🍝 100g macarrones + 2 latas atún 80g + 80g tomate frito + orégano (sin carne, listo en 12 min)","🍖 100g macarrones + 150g pollo del meal prep desmigado + 80g tomate frito + 20g queso"]}],
-  // DOM
-  [{steps:["Calienta la leche 2 min","Añade la avena y deja reposar 2 min","Haz los huevos revueltos en sartén","Añade la miel por encima de la avena"],alts:["🥞 Tortitas: 80g avena + 2 huevos + 100ml leche + 10g miel encima (receta viernes)","🍳 2 tostadas pan integral + 20g mantequilla de cacahuete + 2 huevos duros (12 min cocción)"]},
-   {steps:["Coge 2 piezas de fruta de temporada (lo que tengas)","Trocea y pon en bol","Añade las nueces al lado"],alts:["🍓 200g yogur griego + 150g fruta variada troceada + 20g nueces (más proteína)","🥭 300ml leche + 150g fruta variada + 15g cacao, batido (si no tienes mucha hambre)"]},
-   {steps:["Sofríe el pollo troceado con ajo y pimiento 5 min","Añade el tomate y el caldo, sube fuego hasta que hierva","Añade el arroz crudo, baja a fuego medio","Tapa y cuece 18 min hasta que absorba el caldo"],alts:["🍲 200g gambas peladas congeladas (descongelar) mismo proceso que el pollo + 100g arroz crudo","🫘 150g lentejas secas cocidas (30 min) + 100g arroz crudo + ½ pimiento + tomate (sin proteína animal)"]},
-   {steps:["Yogur en bol","Añade rodajas de plátano","Miel por encima"],alts:["🧀 200g requesón + 1 plátano en rodajas + 15g cacao puro (sin miel)","🍌 200g yogur griego + 1 plátano + 2 dátiles Medjool troceados + 15g nueces"]},
-   {steps:["Extiende tomate frito sobre las tortillas","Añade la mozzarella rallada o en lonchas","Coloca el atún escurrido encima","Air fryer 180°C · 7-8 min · vigila que no se queme el borde"],alts:["🍕 2 tortillas trigo + 60g tomate frito + 80g mozzarella + 80g pavo fiambre (sin atún)","🧇 2 tortillas trigo + 150g pollo del meal prep desmigado + 40g queso rallado + 50g tomate frito, enrollar y air fryer 180°C 5 min"]}],
-];
-const MEAL_M = [
-  {kcal:598,p:30,c:80,f:18},{kcal:308,p:20,c:30,f:12},
-  {kcal:893,p:45,c:120,f:25},{kcal:475,p:25,c:60,f:15},{kcal:582,p:30,c:75,f:18},
-];
-const TARGET = {kcal:2856,p:150,c:365,f:88};
 const TIPO_META = {
   train:{label:"Entrenamiento",bg:"#dcfce7",fg:"#166534"},
-  rest: {label:"Descanso",    bg:"#f3f4f6",fg:"#4b5563"},
-  padel:{label:"Pádel",       bg:"#ede9fe",fg:"#5b21b6"},
+  rest: {label:"Descanso", bg:"#f3f4f6",fg:"#4b5563"},
+  padel:{label:"Pádel", bg:"#ede9fe",fg:"#5b21b6"},
   prep: {label:"Meal Prep 🍳",bg:"#fef3c7",fg:"#92400e"},
 };
-const SHOP_MENSUAL = [{
-  cat:"Despensa · compra 1 vez al mes",
-  items:[
-    {n:"Aceite de oliva virgen extra",q:"2 L",p:"~€8,00"},
-    {n:"Arroz blanco",q:"3 kg",p:"~€3,60"},
-    {n:"Pasta / macarrones",q:"3 kg",p:"~€3,00"},
-    {n:"Avena en copos",q:"1,5 kg",p:"~€3,90"},
-    {n:"Atún al natural (latas 80g)",q:"30 latas",p:"~€18,00"},
-    {n:"Sardinas en aceite (latas)",q:"8 latas",p:"~€7,20"},
-    {n:"Lentejas cocidas (bote 400g)",q:"8 botes",p:"~€6,40"},
-    {n:"Alubias cocidas (bote 400g)",q:"4 botes",p:"~€3,60"},
-    {n:"Tomate frito (bote)",q:"6 uds",p:"~€4,80"},
-    {n:"Cacao puro en polvo",q:"500 g",p:"~€5,00"},
-    {n:"Miel",q:"500 g",p:"~€4,00"},
-    {n:"Mermelada",q:"2 botes",p:"~€3,00"},
-    {n:"Nueces (envasadas al vacío)",q:"500 g",p:"~€7,50"},
-    {n:"Tortillas de trigo",q:"2 packs",p:"~€2,40"},
-    {n:"Sal, orégano, pimentón, ajo polvo",q:"surtido",p:"~€3,00"},
-  ]
-}];
-const SHOP_SEMANAL = [
-  {cat:"Proteínas · renovar cada semana",items:[
-    {n:"Pechugas de pollo",q:"1,5 kg",p:"~€6,00"},
-    {n:"Contramuslos / muslos",q:"700 g",p:"~€2,50"},
-    {n:"Huevos L",q:"18 uds",p:"~€3,50"},
-    {n:"Merluza congelada / fresca",q:"400 g",p:"~€3,00"},
-    {n:"Carne picada mixta",q:"300 g",p:"~€3,00"},
-    {n:"Salchichas de pollo",q:"1 pack",p:"~€2,00"},
-    {n:"Pechuga pavo fiambre",q:"150 g",p:"~€1,80"},
-  ]},
-  {cat:"Lácteos · renovar cada semana",items:[
-    {n:"Leche entera",q:"4 L",p:"~€3,60"},
-    {n:"Yogur griego natural",q:"6 × 200 g",p:"~€4,00"},
-    {n:"Requesón / queso fresco",q:"400 g",p:"~€2,50"},
-    {n:"Mozzarella (bola)",q:"125 g",p:"~€1,30"},
-    {n:"Queso rallado",q:"100 g",p:"~€1,20"},
-    {n:"Mantequilla",q:"125 g",p:"~€1,20"},
-  ]},
-  {cat:"Fruta y verdura · renovar cada semana",items:[
-    {n:"Plátanos",q:"~1,5 kg",p:"~€1,50"},
-    {n:"Naranjas",q:"1,5 kg",p:"~€1,80"},
-    {n:"Manzanas / peras",q:"4–6 uds",p:"~€1,50"},
-    {n:"Brócoli",q:"1 ud",p:"~€1,20"},
-    {n:"Pimientos (rojo/verde)",q:"3 uds",p:"~€1,50"},
-    {n:"Tomates",q:"500 g",p:"~€1,20"},
-    {n:"Judías verdes",q:"200 g",p:"~€1,00"},
-    {n:"Patatas",q:"2 kg",p:"~€1,80"},
-  ]},
-  {cat:"Pan · renovar cada semana",items:[
-    {n:"Pan integral de molde",q:"1 bolsa",p:"~€1,80"},
-  ]},
-];
-const AF_TIMES = [
-  {f:"Pechuga (200g)",t:"185°C",m:"16–18 min",tip:"Da la vuelta a mitad"},
-  {f:"Muslos / contramuslos",t:"180°C",m:"20–22 min",tip:"Con piel: queda crujiente"},
-  {f:"Merluza / pescado",t:"190°C",m:"10–12 min",tip:"Sin voltear"},
-  {f:"Patatas (dados)",t:"200°C",m:"18–20 min",tip:"Remoja 10 min antes"},
-  {f:"Brócoli / verdura",t:"180°C",m:"10–12 min",tip:"Spray aceite + sal"},
-  {f:"Pizza tortilla",t:"180°C",m:"7–8 min",tip:"Vigila que no se queme"},
-];
-const PREP_STEPS = [
-  ["Arroz (1 kg) a cocer","20 min"],
-  ["Air fryer: 600g pechuga + 400g muslos 180°C","22 min"],
-  ["Hierve 6 huevos duros mientras tanto","12 min"],
-  ["Hierve 500g de pasta con sal","10 min"],
-  ["Abre botes de lentejas y alubias (lista para la semana)","0 min"],
-];
-const TIPS = [
-  "Sin subida de peso en 2 semanas → añade 100–150 kcal en carbos",
-  "Pésate cada lunes en ayunas, mismo horario siempre",
-  "El meal prep del domingo cubre 4–5 días de almuerzos",
-  "Si fallas un día → no recuperes, sigue el plan normal",
-  "Pre-pádel: come 60 min antes para no ir lleno al partido",
-];
 
-// Storage shim: usa localStorage en producción (web) o window.storage si existe (Claude artifacts)
+// ─── Storage shim (para checks/completados locales) ─────────────────────────
 const storage = {
   get: async (key) => {
     try {
@@ -202,31 +42,35 @@ const storage = {
 };
 
 const fmtDate = d => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
-function getCurrentWeekIdx() {
+
+function getCurrentWeekIdx(WEEKS_META) {
   const now = new Date();
   for (let i = WEEKS_META.length-1; i >= 0; i--)
-    if (now >= WEEKS_META[i].start) return Math.min(i, WEEKS_META.length-1);
+    if (now >= new Date(WEEKS_META[i].start)) return Math.min(i, WEEKS_META.length-1);
   return 0;
 }
-function getCurrentDayIdx() {
-  const wi = getCurrentWeekIdx();
-  const diff = Math.floor((new Date() - WEEKS_META[wi].start) / 86400000);
+function getCurrentDayIdx(WEEKS_META) {
+  const wi = getCurrentWeekIdx(WEEKS_META);
+  const diff = Math.floor((new Date() - new Date(WEEKS_META[wi].start)) / 86400000);
   return Math.max(0, Math.min(6, diff));
 }
-function getDays(weekIdx) {
-  const start = WEEKS_META[weekIdx].start;
+function getDays(weekIdx, WEEKS_META, TIPOS, MEAL_TPLS) {
+  const start = new Date(WEEKS_META[weekIdx].start);
   return SHORTS.map((short,i) => {
-    const d = new Date(start); d.setDate(d.getDate()+i);
+    const d = new Date(start);
+    d.setDate(d.getDate()+i);
     return {short, date:fmtDate(d), tipo:TIPOS[i], meals:MEAL_TPLS[i]};
   });
 }
-function calcSums(wi,di,completed) {
+function calcSums(wi,di,completed, MEAL_M) {
   return MEAL_M.reduce((a,m,i) => {
     if (completed.has(`${wi}-${di}-${i}`)) { a.kcal+=m.kcal; a.p+=m.p; a.c+=m.c; a.f+=m.f; }
     return a;
   }, {kcal:0,p:0,c:0,f:0});
 }
-// ─── Meal Info Modal ──────────────────────────────────────────────────────────
+
+// ─── Componentes UI (sin cambios, solo reciben datos por props) ─────────────
+
 function InfoModal({meal, info, onClose}) {
   if (!meal || !info) return null;
   return (
@@ -262,17 +106,18 @@ function InfoModal({meal, info, onClose}) {
     </div>
   );
 }
+
 function CheckIcon() {
   return <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><polyline points="1,4 4,7 9,1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 }
+
 function Ring({val,target,color,label}) {
   const R=20,C=2*Math.PI*R,pct=Math.min(1,val/target);
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flex:1}}>
       <svg width="52" height="52" viewBox="0 0 52 52">
         <circle cx="26" cy="26" r={R} fill="none" stroke="#f3f4f6" strokeWidth="5"/>
-        <circle cx="26" cy="26" r={R} fill="none" stroke={color} strokeWidth="5"
-          strokeDasharray={C} strokeDashoffset={C*(1-pct)} strokeLinecap="round" transform="rotate(-90 26 26)"/>
+        <circle cx="26" cy="26" r={R} fill="none" stroke={color} strokeWidth="5" strokeDasharray={C} strokeDashoffset={C*(1-pct)} strokeLinecap="round" transform="rotate(-90 26 26)"/>
         <text x="26" y="30" textAnchor="middle" fontSize="11" fontWeight="700" fill={color}>{val}</text>
       </svg>
       <div style={{fontSize:10,color:"#9ca3af",textAlign:"center",lineHeight:1.3}}>
@@ -281,8 +126,9 @@ function Ring({val,target,color,label}) {
     </div>
   );
 }
-function MacroPanel({wi,di,completed}) {
-  const s = calcSums(wi,di,completed);
+
+function MacroPanel({wi,di,completed,TARGET,MEAL_M}) {
+  const s = calcSums(wi,di,completed,MEAL_M);
   const pct = Math.min(100,Math.round(s.kcal/TARGET.kcal*100));
   return (
     <div style={{...card,padding:16,marginBottom:14}}>
@@ -299,14 +145,15 @@ function MacroPanel({wi,di,completed}) {
         <div style={{height:"100%",background:`linear-gradient(90deg,${G[600]},${G[400]})`,borderRadius:4,width:`${pct}%`,transition:"width .5s ease"}}/>
       </div>
       <div style={{display:"flex",justifyContent:"space-around"}}>
-        <Ring val={s.p} target={TARGET.p} color={G[600]}  label="Proteína"/>
+        <Ring val={s.p} target={TARGET.p} color={G[600]} label="Proteína"/>
         <Ring val={s.c} target={TARGET.c} color="#7c3aed" label="Carbos"/>
         <Ring val={s.f} target={TARGET.f} color="#f59e0b" label="Grasas"/>
       </div>
     </div>
   );
 }
-function MealRow({meal, mi, wi, di, completed, toggleMeal, onInfo}) {
+
+function MealRow({meal, mi, wi, di, completed, toggleMeal, onInfo, MEAL_M}) {
   const key=`${wi}-${di}-${mi}`, done=completed.has(key), m=MEAL_M[mi];
   return (
     <div style={{display:"flex",gap:10,padding:"13px 14px",background:done?G[50]:"#fff",borderTop:"1px solid #f3f4f6",alignItems:"center"}}>
@@ -332,8 +179,9 @@ function MealRow({meal, mi, wi, di, completed, toggleMeal, onInfo}) {
     </div>
   );
 }
-function WeekPills({weekIdx,setWeekIdx}) {
-  const curW = getCurrentWeekIdx();
+
+function WeekPills({weekIdx,setWeekIdx,WEEKS_META}) {
+  const curW = getCurrentWeekIdx(WEEKS_META);
   return (
     <div style={{display:"flex",gap:6,marginBottom:16,overflowX:"auto",paddingBottom:2}}>
       {WEEKS_META.map((w,i) => {
@@ -347,8 +195,9 @@ function WeekPills({weekIdx,setWeekIdx}) {
     </div>
   );
 }
-function DayPills({wi,selDay,setSelDay,completed}) {
-  const days=getDays(wi), curW=getCurrentWeekIdx(), curD=getCurrentDayIdx();
+
+function DayPills({wi,selDay,setSelDay,completed,WEEKS_META,TIPOS,MEAL_TPLS}) {
+  const days=getDays(wi,WEEKS_META,TIPOS,MEAL_TPLS), curW=getCurrentWeekIdx(WEEKS_META), curD=getCurrentDayIdx(WEEKS_META);
   return (
     <div style={{display:"flex",gap:5,marginBottom:18,overflowX:"auto",paddingBottom:2}}>
       {days.map((d,i) => {
@@ -368,32 +217,31 @@ function DayPills({wi,selDay,setSelDay,completed}) {
     </div>
   );
 }
-function MealList({wi, di, completed, toggleMeal}) {
+
+function MealList({wi, di, completed, toggleMeal, MEAL_TPLS, MEAL_INFO, MEAL_M, WEEKS_META, TIPOS}) {
   const [modalMi, setModalMi] = useState(null);
-  const day = getDays(wi)[di];
+  const day = getDays(wi,WEEKS_META,TIPOS,MEAL_TPLS)[di];
   const info = MEAL_INFO[di];
   return (
     <>
       <div style={{fontSize:10,fontWeight:700,letterSpacing:".07em",textTransform:"uppercase",color:"#9ca3af",marginBottom:8}}>Toca ✓ para marcar · ⓘ para ver elaboración</div>
       <div style={card}>
         {day.meals.map((m,i) => (
-          <MealRow key={i} meal={m} mi={i} wi={wi} di={di} completed={completed} toggleMeal={toggleMeal} onInfo={setModalMi}/>
+          <MealRow key={i} meal={m} mi={i} wi={wi} di={di} completed={completed} toggleMeal={toggleMeal} onInfo={setModalMi} MEAL_M={MEAL_M}/>
         ))}
       </div>
-      <InfoModal
-        meal={modalMi !== null ? day.meals[modalMi] : null}
-        info={modalMi !== null ? info[modalMi] : null}
-        onClose={() => setModalMi(null)}
-      />
+      <InfoModal meal={modalMi !== null ? day.meals[modalMi] : null} info={modalMi !== null ? info[modalMi] : null} onClose={() => setModalMi(null)} />
     </>
   );
 }
-function TodayView({completed, toggleMeal}) {
-  const curWi=getCurrentWeekIdx(), curDi=getCurrentDayIdx();
+
+function TodayView({completed, toggleMeal, data}) {
+  const {WEEKS_META,TIPOS,MEAL_TPLS,MEAL_INFO,MEAL_M,TARGET} = data;
+  const curWi=getCurrentWeekIdx(WEEKS_META), curDi=getCurrentDayIdx(WEEKS_META);
   const totalDays = WEEKS_META.length * 7;
   const [flatIdx, setFlatIdx] = useState(curWi*7 + curDi);
   const wi = Math.floor(flatIdx/7), di = flatIdx%7;
-  const day=getDays(wi)[di], meta=TIPO_META[day.tipo];
+  const day=getDays(wi,WEEKS_META,TIPOS,MEAL_TPLS)[di], meta=TIPO_META[day.tipo];
   const doneCt=day.meals.filter((_,i) => completed.has(`${wi}-${di}-${i}`)).length;
   const isToday = wi===curWi && di===curDi;
   const ArrowBtn = ({dir}) => {
@@ -425,32 +273,35 @@ function TodayView({completed, toggleMeal}) {
           <span style={{fontSize:12,color:"#9ca3af"}}>{doneCt}/5 ✓</span>
         </div>
       </div>
-      <MacroPanel wi={wi} di={di} completed={completed}/>
-      <MealList wi={wi} di={di} completed={completed} toggleMeal={toggleMeal}/>
+      <MacroPanel wi={wi} di={di} completed={completed} TARGET={TARGET} MEAL_M={MEAL_M}/>
+      <MealList wi={wi} di={di} completed={completed} toggleMeal={toggleMeal} MEAL_TPLS={MEAL_TPLS} MEAL_INFO={MEAL_INFO} MEAL_M={MEAL_M} WEEKS_META={WEEKS_META} TIPOS={TIPOS}/>
     </div>
   );
 }
-function WeekView({completed, toggleMeal}) {
-  const curW=getCurrentWeekIdx(), curD=getCurrentDayIdx();
+
+function WeekView({completed, toggleMeal, data}) {
+  const {WEEKS_META,TIPOS,MEAL_TPLS,MEAL_INFO,MEAL_M,TARGET} = data;
+  const curW=getCurrentWeekIdx(WEEKS_META), curD=getCurrentDayIdx(WEEKS_META);
   const [wi,setWi]=useState(curW);
   const [di,setDi]=useState(curD);
   const handleWeek = w => { setWi(w); setDi(w===curW?curD:0); };
-  const days=getDays(wi), day=days[di], meta=TIPO_META[day.tipo];
+  const days=getDays(wi,WEEKS_META,TIPOS,MEAL_TPLS), day=days[di], meta=TIPO_META[day.tipo];
   return (
     <div>
       <div style={{fontSize:20,fontWeight:800,color:"#111827",marginBottom:14}}>{WEEKS_META[wi].label} · 2026</div>
-      <WeekPills weekIdx={wi} setWeekIdx={handleWeek}/>
+      <WeekPills weekIdx={wi} setWeekIdx={handleWeek} WEEKS_META={WEEKS_META}/>
       <div style={{fontSize:12,color:"#9ca3af",marginBottom:14}}>{WEEKS_META[wi].range}</div>
-      <DayPills wi={wi} selDay={di} setSelDay={setDi} completed={completed}/>
+      <DayPills wi={wi} selDay={di} setSelDay={setDi} completed={completed} WEEKS_META={WEEKS_META} TIPOS={TIPOS} MEAL_TPLS={MEAL_TPLS}/>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{fontWeight:700,fontSize:16,color:"#111827"}}>{day.date}</div>
         <span style={pill(meta.bg,meta.fg)}>{meta.label}</span>
       </div>
-      <MacroPanel wi={wi} di={di} completed={completed}/>
-      <MealList wi={wi} di={di} completed={completed} toggleMeal={toggleMeal}/>
+      <MacroPanel wi={wi} di={di} completed={completed} TARGET={TARGET} MEAL_M={MEAL_M}/>
+      <MealList wi={wi} di={di} completed={completed} toggleMeal={toggleMeal} MEAL_TPLS={MEAL_TPLS} MEAL_INFO={MEAL_INFO} MEAL_M={MEAL_M} WEEKS_META={WEEKS_META} TIPOS={TIPOS}/>
     </div>
   );
 }
+
 function ShopItem({item,done,onToggle,square}) {
   return (
     <div onClick={onToggle} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:done?G[50]:"#fff",cursor:"pointer",transition:"background .15s",borderTop:"1px solid #f3f4f6"}}>
@@ -465,8 +316,10 @@ function ShopItem({item,done,onToggle,square}) {
     </div>
   );
 }
-function ShoppingView({monthCk,weekCk,toggleMonth,toggleWeek}) {
-  const [selWeek,setSelWeek]=useState(getCurrentWeekIdx());
+
+function ShoppingView({monthCk,weekCk,toggleMonth,toggleWeek,data}) {
+  const {WEEKS_META,SHOP_MENSUAL,SHOP_SEMANAL} = data;
+  const [selWeek,setSelWeek]=useState(getCurrentWeekIdx(WEEKS_META));
   const mTotal=SHOP_MENSUAL.reduce((a,c)=>a+c.items.length,0);
   const mDone=SHOP_MENSUAL.reduce((a,c,ci)=>a+c.items.filter((_,ii)=>monthCk.has(`m-${ci}-${ii}`)).length,0);
   const wTotal=SHOP_SEMANAL.reduce((a,c)=>a+c.items.length,0);
@@ -518,7 +371,7 @@ function ShoppingView({monthCk,weekCk,toggleMonth,toggleWeek}) {
         </div>
       </div>
       <div style={{marginBottom:14}}>
-        <WeekPills weekIdx={selWeek} setWeekIdx={setSelWeek}/>
+        <WeekPills weekIdx={selWeek} setWeekIdx={setSelWeek} WEEKS_META={WEEKS_META}/>
         <div style={{fontSize:11,color:"#9ca3af"}}>{WEEKS_META[selWeek].range}</div>
       </div>
       {SHOP_SEMANAL.map((cat,ci) => (
@@ -534,7 +387,9 @@ function ShoppingView({monthCk,weekCk,toggleMonth,toggleWeek}) {
     </div>
   );
 }
-function InfoView() {
+
+function InfoView({data}) {
+  const {AF_TIMES,PREP_STEPS,TIPS} = data;
   const [openPrep,setOpenPrep]=useState(true);
   return (
     <div>
@@ -593,6 +448,7 @@ function InfoView() {
     </div>
   );
 }
+
 function NavBar({tab,setTab}) {
   const items = [
     {id:"hoy",label:"Hoy",icon:a=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={a?G[600]:"#9ca3af"} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
@@ -614,20 +470,54 @@ function NavBar({tab,setTab}) {
     </div>
   );
 }
+
+// ─── App principal: carga datos de Supabase ─────────────────────────────────
+
 export default function App() {
-  const [tab,setTab]         = useState("hoy");
-  const [completed,setComp]  = useState(new Set());
+  const [tab,setTab] = useState("hoy");
+  const [completed,setComp] = useState(new Set());
   const [monthCk,setMonthCk] = useState(new Set());
-  const [weekCk,setWeekCk]   = useState(new Set());
-  const [ready,setReady]     = useState(false);
+  const [weekCk,setWeekCk] = useState(new Set());
+  const [ready,setReady] = useState(false);
+  const [appData, setAppData] = useState(null);
+
+  // Cargar datos de Supabase + localStorage
   useEffect(() => {
     (async () => {
+      // 1. Cargar datos de Supabase
+      const { data: rows, error } = await supabase.from("app_data").select("key, data");
+      if (error) { console.error("Supabase error:", error); return; }
+
+      const db = {};
+      rows.forEach(r => { db[r.key] = r.data; });
+
+      const profile = db.profile || {weight:73,height:1.86,goal:"masa muscular",kcal:2856,protein:150,carbs:365,fat:88};
+      const TARGET = {kcal:profile.kcal, p:profile.protein, c:profile.carbs, f:profile.fat};
+
+      setAppData({
+        profile,
+        TARGET,
+        MEAL_M: db.meal_macros || [],
+        TIPOS: db.day_types || [],
+        WEEKS_META: db.weeks || [],
+        MEAL_TPLS: db.meals || [],
+        MEAL_INFO: [db.meal_info_0||[], db.meal_info_1||[], db.meal_info_2||[], db.meal_info_3||[], db.meal_info_4||[], db.meal_info_5||[], db.meal_info_6||[]],
+        SHOP_MENSUAL: db.shop_monthly || [],
+        SHOP_SEMANAL: db.shop_weekly || [],
+        AF_TIMES: db.air_fryer || [],
+        PREP_STEPS: db.prep_steps || [],
+        TIPS: db.tips || [],
+      });
+
+      // 2. Cargar estado local (checks)
       try { const r=await storage.get("nt_meals2"); if(r) setComp(new Set(JSON.parse(r.value))); } catch {}
-      try { const r=await storage.get("nt_month");  if(r) setMonthCk(new Set(JSON.parse(r.value))); } catch {}
-      try { const r=await storage.get("nt_week");   if(r) setWeekCk(new Set(JSON.parse(r.value))); } catch {}
+      try { const r=await storage.get("nt_month"); if(r) setMonthCk(new Set(JSON.parse(r.value))); } catch {}
+      try { const r=await storage.get("nt_week"); if(r) setWeekCk(new Set(JSON.parse(r.value))); } catch {}
+
       setReady(true);
     })();
   },[]);
+
   const toggleMeal = key => setComp(prev => {
     const n=new Set(prev); n.has(key)?n.delete(key):n.add(key);
     storage.set("nt_meals2",JSON.stringify([...n])).catch(()=>{});
@@ -643,26 +533,28 @@ export default function App() {
     storage.set("nt_week",JSON.stringify([...n])).catch(()=>{});
     return n;
   });
-  if (!ready) return <div style={{height:300,display:"flex",alignItems:"center",justifyContent:"center",color:"#9ca3af",fontSize:14,fontFamily:"system-ui,sans-serif"}}>Cargando NutriTrack...</div>;
+
+  if (!ready || !appData) return <div style={{height:300,display:"flex",alignItems:"center",justifyContent:"center",color:"#9ca3af",fontSize:14,fontFamily:"system-ui,sans-serif"}}>Cargando NutriTrack...</div>;
+
   return (
     <div style={{fontFamily:"system-ui,-apple-system,sans-serif",maxWidth:520,margin:"0 auto",background:"#f9fafb"}}>
       <div style={{background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"14px 16px 12px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
             <div style={{fontSize:18,fontWeight:800,color:"#111827",letterSpacing:"-.5px"}}>NutriTrack</div>
-            <div style={{fontSize:11,color:"#9ca3af",marginTop:1}}>73 kg · 1.86 m · Objetivo: masa muscular</div>
+            <div style={{fontSize:11,color:"#9ca3af",marginTop:1}}>{appData.profile.weight} kg · {appData.profile.height} m · Objetivo: {appData.profile.goal}</div>
           </div>
           <div style={{background:G[100],borderRadius:12,padding:"8px 14px",textAlign:"center"}}>
-            <div style={{fontSize:20,fontWeight:800,color:G[700],lineHeight:1}}>2.856</div>
+            <div style={{fontSize:20,fontWeight:800,color:G[700],lineHeight:1}}>{appData.TARGET.kcal.toLocaleString("es-ES")}</div>
             <div style={{fontSize:9,color:G[500],fontWeight:700,textTransform:"uppercase",letterSpacing:".05em"}}>kcal / día</div>
           </div>
         </div>
       </div>
       <div style={{padding:"16px 14px 80px"}}>
-        {tab==="hoy"    && <TodayView  completed={completed} toggleMeal={toggleMeal}/>}
-        {tab==="semana" && <WeekView   completed={completed} toggleMeal={toggleMeal}/>}
-        {tab==="compra" && <ShoppingView monthCk={monthCk} weekCk={weekCk} toggleMonth={toggleMonth} toggleWeek={toggleWeek}/>}
-        {tab==="info"   && <InfoView/>}
+        {tab==="hoy" && <TodayView completed={completed} toggleMeal={toggleMeal} data={appData}/>}
+        {tab==="semana" && <WeekView completed={completed} toggleMeal={toggleMeal} data={appData}/>}
+        {tab==="compra" && <ShoppingView monthCk={monthCk} weekCk={weekCk} toggleMonth={toggleMonth} toggleWeek={toggleWeek} data={appData}/>}
+        {tab==="info" && <InfoView data={appData}/>}
       </div>
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:520,zIndex:100}}>
         <NavBar tab={tab} setTab={setTab}/>
